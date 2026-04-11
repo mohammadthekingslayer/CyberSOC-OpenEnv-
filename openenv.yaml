@@ -1,0 +1,51 @@
+name: cyber-soc-env
+version: "1.0.0"
+description: "AI-driven SOC analyst training environment"
+author: "shaik347"
+tags:
+  - openenv
+  - cybersecurity
+  - soc
+  - reinforcement-learning
+  - security
+
+environment:
+  entry_point: "cyber_soc_env.api.app:app"
+  framework: openenv
+  python_version: "3.11"
+
+tasks:
+  - id: task1
+    name: "Brute Force Detection"
+    difficulty: easy
+    description: "Detect and block a brute force attack"
+  - id: task2
+    name: "Malware Containment"
+    difficulty: medium
+    description: "Identify and contain malware infection"
+  - id: task3
+    name: "APT Investigation"
+    difficulty: hard
+    description: "Investigate advanced persistent threat"
+
+action_space:
+  type: object
+  properties:
+    action_type:
+      type: string
+      enum: [analyze_log, block_ip, isolate_device, mark_safe, escalate, run_scan, correlate_events]
+    target:
+      type: string
+    reasoning:
+      type: string
+
+observation_space:
+  type: object
+  properties:
+    logs: {type: array}
+    alerts: {type: array}
+    network_status: {type: object}
+    threat_level: {type: string}
+    message: {type: string}
+    done: {type: boolean}
+    reward: {type: number}
