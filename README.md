@@ -322,4 +322,16 @@ Built for the **OpenEnv Competition** by HuggingFace and Meta.
 
 ---
 
+## 📸 Gallery & Screenshots
+
+Here are some live previews of the CyberSOC OpenEnv dashboard, APIs, and project files:
+
+![Logo](assets/logo.png)
+![Dashboard Demo](assets/dashboard.png)
+![System Screenshot 1](assets/demo_1.jpg)
+![System Screenshot 2](assets/demo_2.jpg)
+![System Screenshot 3](assets/demo_3.jpg)
+
+---
+
 **Made with ❤️ for the AI Security Community**
