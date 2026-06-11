@@ -94,4 +94,5 @@ class MalwareGrader(BaseGrader):
             score=min(score / 100.0, 1.0),
             passed=score >= 70,
             feedback="\n".join(feedback_parts),
+            kpis=self._compute_kpis(actions, expected_steps=3)
         )

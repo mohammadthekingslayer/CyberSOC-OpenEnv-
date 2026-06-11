@@ -79,11 +79,12 @@ def log_step(step: int, action: str, reward: float, done: bool, error: Optional[
         flush=True,
     )
 
-def log_end(success: bool, steps: int, score: float, rewards: List[float]) -> None:
+def log_end(success: bool, steps: int, score: float, rewards: List[float], kpis: dict = None) -> None:
     """Log episode end in required format."""
     rewards_str = ",".join(f"{r:.2f}" for r in rewards)
     success_val = str(success).lower()
-    print(f"[END] success={success_val} steps={steps} score={score:.3f} rewards={rewards_str}", flush=True)
+    kpis_json = json.dumps(kpis) if kpis else "{}"
+    print(f"[END] success={success_val} steps={steps} score={score:.3f} rewards={rewards_str} kpis={kpis_json}", flush=True)
 
 def build_user_prompt(obs_dict: dict, step: int, action_history: List[str]) -> str:
     """Build context-rich user prompt from observation."""
@@ -192,6 +193,7 @@ async def run_task(client: OpenAI, task_name: str):
     rewards: List[float] = []
     action_history: List[str] = []
     steps_taken = 0
+    total_latency_sec = 0.0
     success = False
     
     log_start(task=task_name, env=BENCHMARK, model=MODEL_NAME)
@@ -207,7 +209,10 @@ async def run_task(client: OpenAI, task_name: str):
                 break
             
             # Get action from LLM
+            start_time = time.perf_counter()
             action = await get_action_from_llm(client, obs_dict, step, action_history)
+            end_time = time.perf_counter()
+            total_latency_sec += (end_time - start_time)
             # Handle both string and enum action_type
             action_type_str = action.action_type.value if hasattr(action.action_type, 'value') else str(action.action_type)
             action_str = f"{action_type_str}(target='{action.target}')"
@@ -232,14 +237,21 @@ async def run_task(client: OpenAI, task_name: str):
                 break
         
         # Grade episode (score in range 0.0 - 1.0)
-        score = env.grade_episode(task_id=task_name)
+        grade_result = env.grade_episode(task_id=task_name)
+        score = grade_result.score
+        kpis = grade_result.kpis
+        
+        avg_latency_ms = (total_latency_sec / max(1, steps_taken)) * 1000
+        kpis["avg_latency_ms"] = round(avg_latency_ms, 2)
+        
         success = score >= SUCCESS_SCORE_THRESHOLD
         
     except Exception as e:
         print(f"[DEBUG] Episode error: {e}", file=sys.stderr)
         score = 0.0
+        kpis = {}
     finally:
-        log_end(success=success, steps=steps_taken, score=score, rewards=rewards)
+        log_end(success=success, steps=steps_taken, score=score, rewards=rewards, kpis=kpis)
 
 async def main():
     """Main inference entry point - runs all 3 tasks sequentially."""

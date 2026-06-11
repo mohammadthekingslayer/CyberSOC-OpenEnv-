@@ -19,6 +19,7 @@ baseline_state: Dict[str, Any] = {
     "status": "idle", # idle, running, completed, error
     "logs": [],
     "scores": {"task1": 0.0, "task2": 0.0, "task3": 0.0},
+    "kpis": {"task1": {}, "task2": {}, "task3": {}},
     "progress": 0,
     "current_task": None,
     "error": None
@@ -254,6 +255,24 @@ def read_root(request: Request):
                     </div>
                 </div>
             </section>
+
+            <section class="card" style="cursor: default; margin-top: 1rem;">
+                <h3 style="color: var(--text-heading); margin-bottom: 1.5rem;">Cybersecurity KPIs</h3>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; text-align: center;">
+                    <div style="padding: 1rem; background: rgba(0,0,0,0.2); border-radius: 12px;">
+                        <p style="font-size: 0.7rem; color: var(--text-muted);">SYS LATENCY (MS/STEP)</p>
+                        <p id="kpi-latency" style="font-weight: 700; color: var(--accent-secondary);">---</p>
+                    </div>
+                    <div style="padding: 1rem; background: rgba(0,0,0,0.2); border-radius: 12px;">
+                        <p style="font-size: 0.7rem; color: var(--text-muted);">MTTD (STEPS)</p>
+                        <p id="kpi-mttd" style="font-weight: 700; color: var(--text-heading);">---</p>
+                    </div>
+                    <div style="padding: 1rem; background: rgba(0,0,0,0.2); border-radius: 12px;">
+                        <p style="font-size: 0.7rem; color: var(--text-muted);">MTTR (STEPS)</p>
+                        <p id="kpi-mttr" style="font-weight: 700; color: var(--text-heading);">---</p>
+                    </div>
+                </div>
+            </section>
         </main>
     </div>
 
@@ -291,6 +310,23 @@ def read_root(request: Request):
                         el.className = 'score-badge ' + (score >= 0.7 ? 'score-pass' : 'score-fail');
                     }
                 });
+
+                // Update KPIs
+                let totalLat = 0, totalMttd = 0, totalMttr = 0, kpiCount = 0;
+                Object.keys(baseline.kpis).forEach(tid => {
+                    const k = baseline.kpis[tid];
+                    if (k && k.avg_latency_ms !== undefined) {
+                        totalLat += k.avg_latency_ms;
+                        totalMttd += k.mttd_steps || 0;
+                        totalMttr += k.mttr_steps || 0;
+                        kpiCount++;
+                    }
+                });
+                if (kpiCount > 0) {
+                    document.getElementById('kpi-latency').innerText = (totalLat / kpiCount).toFixed(0);
+                    document.getElementById('kpi-mttd').innerText = (totalMttd / kpiCount).toFixed(1);
+                    document.getElementById('kpi-mttr').innerText = (totalMttr / kpiCount).toFixed(1);
+                }
 
                 if (isBaselineRunning) {
                     document.getElementById('baseline-progress-box').style.display = 'block';
@@ -610,6 +646,8 @@ def run_baseline_task():
         baseline_state["status"] = "running"
         baseline_state["logs"] = ["[START] Background Baseline Execution Initiated"]
         baseline_state["progress"] = 0
+        baseline_state["scores"] = {"task1": 0.0, "task2": 0.0, "task3": 0.0}
+        baseline_state["kpis"] = {"task1": {}, "task2": {}, "task3": {}}
         baseline_state["error"] = None
         
         env_vars = os.environ.copy()
@@ -648,11 +686,19 @@ def run_baseline_task():
                 
                 if "[END]" in line:
                     score_match = re.search(r"score=([\d.]+)", line)
+                    kpis_match = re.search(r"kpis=({.+})", line)
                     if score_match and baseline_state["current_task"]:
-                        baseline_state["scores"][baseline_state["current_task"]] = float(score_match.group(1))
+                        curr_task = baseline_state["current_task"]
+                        baseline_state["scores"][curr_task] = float(score_match.group(1))
+                        if kpis_match:
+                            try:
+                                import json
+                                baseline_state["kpis"][curr_task] = json.loads(kpis_match.group(1))
+                            except:
+                                pass
                         tasks = ["task1", "task2", "task3"]
-                        if baseline_state["current_task"] in tasks:
-                            baseline_state["progress"] = int(((tasks.index(baseline_state["current_task"]) + 1) / 3) * 100)
+                        if curr_task in tasks:
+                            baseline_state["progress"] = int(((tasks.index(curr_task) + 1) / 3) * 100)
 
             process.wait()
             if process.returncode == 0:

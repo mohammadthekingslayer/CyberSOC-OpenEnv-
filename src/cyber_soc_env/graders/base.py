@@ -36,3 +36,24 @@ class BaseGrader(ABC):
             if any(a.action_type == exp.action_type and a.target == exp.target for a in taken)
         )
         return matched / len(expected)
+
+    def _compute_kpis(self, actions: list[SOCAction], expected_steps: int = 3) -> dict[str, Any]:
+        """Compute standard SOC KPIs (MTTD, MTTR, Efficiency)."""
+        mttd = -1
+        mttr = -1
+        
+        for i, action in enumerate(actions):
+            at = str(action.action_type)
+            if "analyze_log" in at and mttd == -1:
+                mttd = i + 1
+            if ("block_ip" in at or "isolate_device" in at or "mark_safe" in at) and mttr == -1:
+                mttr = i + 1
+                
+        actual_steps = max(1, len(actions))
+        efficiency = min(1.0, expected_steps / actual_steps)
+        
+        return {
+            "mttd_steps": mttd if mttd > 0 else 0,
+            "mttr_steps": mttr if mttr > 0 else 0,
+            "action_efficiency": round(efficiency, 2)
+        }

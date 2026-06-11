@@ -84,6 +84,7 @@ class GradeResult(BaseModel):
     passed: bool = False
     feedback: str = ""
     details: dict[str, Any] = Field(default_factory=dict)
+    kpis: dict[str, Any] = Field(default_factory=dict)
 
 
 class TaskScenario(BaseModel):

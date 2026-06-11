@@ -157,23 +157,24 @@ class SOCEnvironment(Environment):
     def is_done(self) -> bool:
         return self.state_manager.current_state.done
 
-    def grade_episode(self, task_id: str = None) -> float:
-        """Call the appropriate grader. Returns score between 0.0 and 1.0."""
+    def grade_episode(self, task_id: str = None) -> Any:
+        """Call the appropriate grader. Returns GradeResult object."""
         tid = (task_id or self.task_id).lower().strip()
         # Ensure we use the raw actions collected in this instance
         actions = self._actions_raw
 
         if tid == "task1":
             from ..graders.grader_task1 import BruteForceGrader
-            return BruteForceGrader(self.scenario).grade(actions).score
+            return BruteForceGrader(self.scenario).grade(actions)
         elif tid == "task2":
             from ..graders.grader_task2 import MalwareGrader
-            return MalwareGrader(self.scenario).grade(actions).score
+            return MalwareGrader(self.scenario).grade(actions)
         elif tid == "task3":
             from ..graders.grader_task3 import APTGrader
-            return APTGrader(self.scenario).grade(actions).score
+            return APTGrader(self.scenario).grade(actions)
         else:
-            return 0.0
+            from ..models import GradeResult
+            return GradeResult(task_id=tid, score=0.0)
 
     def close(self):
         """Clean up resources."""
