@@ -32,7 +32,7 @@ MODEL_NAME = os.getenv("MODEL_NAME") or "gemini-2.0-flash-exp"
 BENCHMARK = os.getenv("CYBER_SOC_BENCHMARK", "cyber-soc-env")
 
 # Execution parameters
-MAX_STEPS = 15
+MAX_STEPS = 8
 SUCCESS_SCORE_THRESHOLD = 0.7  # 70% score required for PASS
 
 SYSTEM_PROMPT = """You are an ELITE SOC (Security Operations Center) analyst with expertise in cybersecurity incident response.
@@ -164,7 +164,11 @@ async def get_action_from_llm(client: OpenAI, obs_dict: dict, step: int, action_
             if attempt == max_retries - 1:
                 return SOCAction(action_type="analyze_log", target="all", reasoning=f"Parse Error: {str(e)}")
         except Exception as e:
-            if any(x in str(e).lower() for x in ["429", "rate", "quota", "limit", "timeout"]):
+            err_msg = str(e).lower()
+            if "authentication" in err_msg or "api key" in err_msg or "401" in err_msg or "403" in err_msg:
+                print(f"[ERROR] API Authentication failed: {e}", flush=True)
+                sys.exit(1)
+            if any(x in err_msg for x in ["429", "rate", "quota", "limit", "timeout"]):
                 time.sleep((2 ** attempt) * 15 + random.uniform(0, 5))
                 continue
             if attempt == max_retries - 1:
@@ -208,6 +212,9 @@ async def run_task(client: OpenAI, task_name: str):
             action_str = f"{action_type_str}(target='{action.target}')"
             action_history.append(action_str)
             
+            # Extract error if it's our fallback
+            error_msg = action.reasoning if action.reasoning.startswith(("API Error", "Parse Error")) else None
+            
             # Execute action
             obs_new = env.step(action)
             obs_dict = asdict(obs_new)
@@ -218,7 +225,7 @@ async def run_task(client: OpenAI, task_name: str):
             rewards.append(reward)
             steps_taken = step
             
-            log_step(step=step, action=action_str, reward=reward, done=done, error=None)
+            log_step(step=step, action=action_str, reward=reward, done=done, error=error_msg)
             
             if done:
                 break
