@@ -172,7 +172,7 @@ async def get_action_from_llm(client: OpenAI, obs_dict: dict, step: int, action_
                 print(f"[ERROR] API Authentication failed: {e}", flush=True)
                 sys.exit(1)
             if any(x in err_msg for x in ["429", "rate", "quota", "limit", "timeout"]):
-                time.sleep((2 ** attempt) * 15 + random.uniform(0, 5))
+                time.sleep(3 + attempt + random.uniform(0, 1))
                 continue
             if attempt == max_retries - 1:
                 return SOCAction(action_type="analyze_log", target="all", reasoning=f"API Error: {str(e)}")
@@ -196,6 +196,8 @@ async def run_task(client: OpenAI, task_name: str):
     steps_taken = 0
     total_latency_sec = 0.0
     success = False
+    score = 0.0
+    kpis = {}
     
     log_start(task=task_name, env=BENCHMARK, model=MODEL_NAME)
     
