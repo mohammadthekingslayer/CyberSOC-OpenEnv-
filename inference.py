@@ -50,9 +50,10 @@ AVAILABLE ACTIONS:
 
 CRITICAL GUIDELINES:
 1. ALWAYS analyze logs BEFORE taking destructive actions (block/isolate)
-2. Be SPECIFIC with targets - use exact IPs, hostnames, or identifiers
-3. Follow proper incident response: Detect → Analyze → Contain → Eradicate → Recover
-4. For multi-stage attacks: investigate the full kill chain (phishing → C2 → lateral movement)
+2. Be SPECIFIC with targets - extract exact IPs (e.g., '10.0.0.55'), hostnames (e.g., 'WS-042', 'DC-01'), or filenames (e.g., 'invoice.exe') directly from the ALERTS and LOGS. NEVER use generic targets like 'all', 'system', or 'logs'.
+3. Follow proper incident response: Detect (analyze_log) → Contain (block_ip, isolate_device) → Eradicate → Recover (mark_safe).
+4. Do NOT repeat actions you have already taken. Review the 'ACTIONS ALREADY TAKEN' list.
+5. Once you have contained the primary threats (blocked IPs, isolated hosts), you MUST use 'mark_safe' on the affected system to finalize recovery and end the episode.
 
 RESPONSE FORMAT:
 Respond ONLY with a valid JSON object:
@@ -83,7 +84,7 @@ def log_end(success: bool, steps: int, score: float, rewards: List[float]) -> No
     success_val = str(success).lower()
     print(f"[END] success={success_val} steps={steps} score={score:.3f} rewards={rewards_str}", flush=True)
 
-def build_user_prompt(obs_dict: dict, step: int) -> str:
+def build_user_prompt(obs_dict: dict, step: int, action_history: List[str]) -> str:
     """Build context-rich user prompt from observation."""
     logs = obs_dict.get("logs", [])
     alerts = obs_dict.get("alerts", [])
@@ -97,10 +98,16 @@ def build_user_prompt(obs_dict: dict, step: int) -> str:
     # Format active alerts
     alerts_display = "\n".join(alerts) if alerts else "No active alerts"
     
+    # Format action history
+    history_display = "\n".join(action_history) if action_history else "None"
+    
     return f"""=== SOC INCIDENT DASHBOARD (Step {step}) ===
 
 THREAT LEVEL: {threat_level}
 LATEST UPDATE: {message}
+
+ACTIONS ALREADY TAKEN:
+{history_display}
 
 RECENT LOGS:
 {logs_display}
@@ -108,14 +115,14 @@ RECENT LOGS:
 ACTIVE ALERTS:
 {alerts_display}
 
-Your task: Investigate and respond appropriately. Return your action as JSON.""".strip()
+Your task: Investigate and respond appropriately. Extract specific targets from the logs/alerts. Do not repeat past actions. Return your action as JSON.""".strip()
 
-async def get_action_from_llm(client: OpenAI, obs_dict: dict, step: int) -> SOCAction:
+async def get_action_from_llm(client: OpenAI, obs_dict: dict, step: int, action_history: List[str]) -> SOCAction:
     """Query LLM for next action with robust error handling."""
     import time
     import random
     
-    user_prompt = build_user_prompt(obs_dict, step)
+    user_prompt = build_user_prompt(obs_dict, step, action_history)
     max_retries = 3
     
     for attempt in range(max_retries):
@@ -178,6 +185,7 @@ async def run_task(client: OpenAI, task_name: str):
     env = SOCEnvironment(task_id=task_name)
     
     rewards: List[float] = []
+    action_history: List[str] = []
     steps_taken = 0
     success = False
     
@@ -194,10 +202,11 @@ async def run_task(client: OpenAI, task_name: str):
                 break
             
             # Get action from LLM
-            action = await get_action_from_llm(client, obs_dict, step)
+            action = await get_action_from_llm(client, obs_dict, step, action_history)
             # Handle both string and enum action_type
             action_type_str = action.action_type.value if hasattr(action.action_type, 'value') else str(action.action_type)
             action_str = f"{action_type_str}(target='{action.target}')"
+            action_history.append(action_str)
             
             # Execute action
             obs_new = env.step(action)
