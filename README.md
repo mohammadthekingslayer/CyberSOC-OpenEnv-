@@ -82,7 +82,7 @@ After each action, the environment returns structured feedback:
 2. Block the malicious IP at firewall
 3. Escalate to security team
 
-**Pass Threshold**: 70% (0.7) | **Max Steps**: 15
+**Pass Threshold**: 70% (0.7) | **Max Steps**: 20
 
 ---
 
@@ -95,7 +95,7 @@ After each action, the environment returns structured feedback:
 3. Block C2 IP at perimeter
 4. Isolate infected workstation (WS-042)
 
-**Pass Threshold**: 70% (0.7) | **Max Steps**: 15
+**Pass Threshold**: 70% (0.7) | **Max Steps**: 30
 
 ---
 
@@ -110,7 +110,7 @@ After each action, the environment returns structured feedback:
 5. Escalate to incident response
 6. Initiate recovery procedures
 
-**Pass Threshold**: 70% (0.7) | **Max Steps**: 15
+**Pass Threshold**: 70% (0.7) | **Max Steps**: 50
 
 ---
 
@@ -158,7 +158,7 @@ Do **not** commit `.env` with real keys.
 
 ```bash
 # Clone the repository
-git clone https://huggingface.co/spaces/YOUR_USERNAME/cyber-soc-env
+git clone https://huggingface.co/spaces/shaik347/cyber-soc-env
 cd cyber-soc-env
 
 # Install dependencies
@@ -186,7 +186,7 @@ docker run -p 7860:7860 cyber-soc-env
 ### HuggingFace Spaces
 The environment auto-deploys to HF Spaces. Access the API at:
 ```
-https://YOUR_USERNAME-cyber-soc-env.hf.space/docs
+https://shaik347-cyber-soc-env.hf.space/docs
 ```
 
 ---
@@ -307,8 +307,8 @@ Contributions welcome! Please open an issue or submit a pull request for:
 
 ## 📞 Support
 
-- **Issues**: [GitHub Issues](https://github.com/YOUR_USERNAME/cyber-soc-env/issues)
-- **Discussions**: [HuggingFace Community](https://huggingface.co/spaces/YOUR_USERNAME/cyber-soc-env/discussions)
+- **Issues**: [GitHub Issues](https://github.com/shaik347/cyber-soc-env/issues)
+- **Discussions**: [HuggingFace Community](https://huggingface.co/spaces/shaik347/cyber-soc-env/discussions)
 - **Email**: shaik347@example.com
 
 ---

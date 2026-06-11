@@ -38,10 +38,10 @@ class TestMalwareGrader:
         grader = MalwareGrader(scenario)
         actions = [
             SOCAction(action_type=ActionType.ANALYZE_LOG, target="invoice.exe"),
-            SOCAction(action_type=ActionType.BLOCK_IP, target="WS-042"),
+            SOCAction(action_type=ActionType.BLOCK_IP, target="198.51.100.42"),
         ]
         result = grader.grade(actions)
-        assert result.score == 0.55  # investigate(25) + contain(30)
+        assert result.score == 0.55  # investigate(25) + block C2(30) = 55/100
         assert result.passed is False
 
 

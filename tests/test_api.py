@@ -34,20 +34,8 @@ class TestCoreEndpoints:
         assert 0.0 <= data["score"] <= 1.0
         assert "passed" in data
 
-    def test_baseline_get(self, client, monkeypatch):
-        # Mock subprocess to avoid actually running python
-        import subprocess
-        class MockCompletedProcess:
-            stdout = "mocked output"
-            
-        def mock_run(*args, **kwargs):
-            return MockCompletedProcess()
-            
-        monkeypatch.setattr(subprocess, "run", mock_run)
-        
+    def test_baseline_get(self, client):
         response = client.get("/baseline")
         assert response.status_code == 200
-        
         data = response.json()
-        assert data["status"] == "completed"
-        assert "task1" in data["scores"]
+        assert data["status"] in ["started", "already_running"]

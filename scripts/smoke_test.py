@@ -76,11 +76,11 @@ def main() -> int:
         grader = BruteForceGrader(scenario)
         actions = [
             SOCAction(action_type=ActionType.ANALYZE_LOG, target="10.0.0.55"),
-            SOCAction(action_type=ActionType.BLOCK_IP, target="block_ip"),
+            SOCAction(action_type=ActionType.BLOCK_IP, target="10.0.0.55"),
             SOCAction(action_type=ActionType.ESCALATE, target="team"),
         ]
         result = grader.grade(actions)
-        assert result.score == 100
+        assert result.score == 1.0
         assert result.passed
         print(f"   ✅ Grading works (score={result.score}, passed={result.passed})")
     except Exception as e:

@@ -26,16 +26,25 @@ class RewardEngine:
     }
     
     # Task difficulty multipliers for dynamic reward scaling
+    # Maps both enum values (beginner/intermediate/advanced) and
+    # common labels (easy/medium/hard) so it always resolves.
     DIFFICULTY_MULTIPLIERS = {
         "easy": 1.0,
+        "beginner": 1.0,
         "medium": 1.2,
+        "intermediate": 1.2,
         "hard": 1.5,
+        "advanced": 1.5,
     }
 
     def __init__(self, scenario: TaskScenario):
         self.scenario = scenario
+        # Handle both enum objects and plain strings
+        diff_str = str(scenario.difficulty)
+        if hasattr(scenario.difficulty, 'value'):
+            diff_str = scenario.difficulty.value
         self.difficulty_multiplier = self.DIFFICULTY_MULTIPLIERS.get(
-            scenario.difficulty.lower(), 1.0
+            diff_str.lower(), 1.0
         )
 
     def compute_reward(self, action: SOCAction, state: SOCState) -> float:
@@ -56,10 +65,16 @@ class RewardEngine:
         if action.action_type == ActionType.ANALYZE_LOG and state.step < 5:
             base_reward *= 1.5
 
+        # Helper to normalize action_type from stored dicts (asdict converts enums to strings)
+        def _get_action_type_str(a: dict) -> str:
+            at = a.get('action_type', '')
+            return at.value if hasattr(at, 'value') else str(at)
+
         # Penalty for duplicate actions (same type + same target)
+        current_at = action.action_type.value if hasattr(action.action_type, 'value') else str(action.action_type)
         duplicate_count = sum(
             1 for a in state.actions_taken
-            if a.get('action_type') == action.action_type and a.get('target') == action.target
+            if _get_action_type_str(a) == current_at and a.get('target') == action.target
         )
         if duplicate_count > 0:
             base_reward *= 0.5 ** duplicate_count
@@ -68,7 +83,8 @@ class RewardEngine:
         destructive_actions = {ActionType.BLOCK_IP, ActionType.ISOLATE_DEVICE}
         if action.action_type in destructive_actions:
             has_investigated = any(
-                a.get('action_type') == ActionType.ANALYZE_LOG for a in state.actions_taken
+                _get_action_type_str(a) == ActionType.ANALYZE_LOG.value
+                for a in state.actions_taken
             )
             if not has_investigated and state.step == 0:
                 # Acting without any investigation = risky, penalty
@@ -77,7 +93,8 @@ class RewardEngine:
         # Penalty: marking something safe without investigating
         if action.action_type == ActionType.MARK_SAFE:
             has_investigated = any(
-                a.get('action_type') == ActionType.ANALYZE_LOG for a in state.actions_taken
+                _get_action_type_str(a) == ActionType.ANALYZE_LOG.value
+                for a in state.actions_taken
             )
             if not has_investigated:
                 base_reward = -5.0  # False safety declaration is dangerous
