@@ -59,9 +59,10 @@ RESPONSE FORMAT:
 Respond ONLY with a valid JSON object:
 {
   "action_type": "<action_type>",
-  "target": "<specific_target>",
-  "reasoning": "<your_analysis>"
+  "target": "<specific_target>"
 }
+
+Do NOT include reasoning or markdown. Output minimal JSON for maximum speed.
 
 No markdown, no extra text, just JSON."""
 
@@ -137,8 +138,8 @@ async def get_action_from_llm(client: OpenAI, obs_dict: dict, step: int, action_
                     {"role": "user", "content": user_prompt},
                 ],
                 temperature=0.0,
-                max_tokens=300,
-                timeout=45,
+                max_tokens=50,
+                timeout=15,
             )
             text = (response.choices[0].message.content or "").strip()
             
@@ -157,7 +158,7 @@ async def get_action_from_llm(client: OpenAI, obs_dict: dict, step: int, action_
             return SOCAction(
                 action_type=str(data.get("action_type", "analyze_log")),
                 target=str(data.get("target", "all")),
-                reasoning=str(data.get("reasoning", "LLM reasoning")),
+                reasoning="Fast execution",
             )
             
         except (json.JSONDecodeError, ValueError) as e:

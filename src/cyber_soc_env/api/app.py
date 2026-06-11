@@ -349,7 +349,7 @@ def read_root(request: Request):
             updateDashboard();
         }
 
-        setInterval(updateDashboard, 2000);
+        setInterval(updateDashboard, 500);
         updateDashboard();
     </script>
 </body>
